@@ -1,5 +1,5 @@
-// MASUKKAN URL WEB APP GOOGLE APPS SCRIPT ANDA DI SINI
-const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxoiW6swt-4rssmCwh7mc_TCZ0gaBP-z8TXNpayMavuU2ywPcbXz-IGPZIzN5MynYrN/exec"; 
+// URL WEB APP APPS SCRIPT ANDA
+const API_URL = "https://script.google.com/macros/s/AKfycbxoiW6swt-4rssmCwh7mc_TCZ0gaBP-z8TXNpayMavuU2ywPcbXz-IGPZIzN5MynYrN/exec";
 
 var globalInventoryData = [];
 var globalTransactionsData = [];
@@ -7,62 +7,56 @@ var currentFilter = 'semua';
 var savedUserName = localStorage.getItem("inventoryUserName");
 var html5QrCode = null;
 var scannerMode = 'carian';
-var deferredPrompt = null;
 
-// --- DAFTAR SERVICE WORKER & PWA PROMPT ---
+// REGISTRATION SERVICE WORKER
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js')
-    .then(() => console.log("Service Worker Berjaya Didaftarkan"))
-    .catch(err => console.log("Gagal daftar SW:", err));
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => console.log('Service Worker terdaftar:', reg.scope))
+      .catch(err => console.log('Ralat Service Worker:', err));
+  });
 }
 
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  document.getElementById('btn-pwa-install').style.display = 'inline-block';
-});
-
-function pasangPWA() {
-  if (deferredPrompt) {
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.then((result) => {
-      if (result.outcome === 'accepted') {
-        document.getElementById('btn-pwa-install').style.display = 'none';
-      }
-      deferredPrompt = null;
-    });
-  }
-}
-
-// --- INISIALISASI ---
 document.addEventListener("DOMContentLoaded", function() {
   if (savedUserName) {
     document.getElementById("user-greeting").innerText = "Pengguna: " + savedUserName;
     document.getElementById("view-dashboard").style.display = "block";
     muatDataStok();
   } else {
-    document.getElementById("user-greeting").innerText = "Log Masuk Diperlukan";
+    document.getElementById("user-greeting").innerText = "Sila Masuk";
     document.getElementById("view-profile").style.display = "block";
-    
-    fetch(GAS_API_URL + "?action=getUsers")
-      .then(res => res.json())
-      .then(res => paparSenaraiPengguna(res.data));
+    muatPengguna();
   }
 });
+
+function muatPengguna() {
+  fetch(`${API_URL}?action=getUsers`)
+    .then(res => res.json())
+    .then(res => {
+      if(res.success && res.data) {
+        paparSenaraiPengguna(res.data);
+      } else {
+        Swal.fire('Ralat', 'Gagal memuatkan data pengguna', 'error');
+      }
+    })
+    .catch(err => Swal.fire('Ralat Rangkaian', err.toString(), 'error'));
+}
 
 function paparSenaraiPengguna(data) {
   var selectObj = document.getElementById("user_select");
   selectObj.innerHTML = '<option value="">-- Pilih Nama Anda --</option>';
-  data.forEach(function(row) {
-    if(row[3] === "Aktif") {
-      selectObj.innerHTML += '<option value="' + row[1] + '">' + row[1] + '</option>';
-    }
-  });
+  if (data && data.length > 0) {
+    data.forEach(function(row) {
+      if (String(row[3]).trim() === "Aktif" || row[3] === true) {
+        selectObj.innerHTML += '<option value="' + row[1] + '">' + row[1] + '</option>';
+      }
+    });
+  }
 }
 
 function simpanProfil() {
   var nama = document.getElementById("user_select").value;
-  if (!nama) return Swal.fire('Ralat', 'Sila pilih nama anda', 'warning');
+  if (!nama) return Swal.fire('Peringatan', 'Sila pilih nama anda', 'warning');
   
   localStorage.setItem("inventoryUserName", nama);
   savedUserName = nama;
@@ -75,9 +69,10 @@ function simpanProfil() {
 function logKeluar() {
   Swal.fire({
     title: 'Tukar Profil?',
-    icon: 'warning',
+    icon: 'question',
     showCancelButton: true,
-    confirmButtonText: 'Ya'
+    confirmButtonText: 'Ya',
+    cancelButtonText: 'Batal'
   }).then((res) => {
     if (res.isConfirmed) {
       localStorage.removeItem("inventoryUserName");
@@ -87,12 +82,19 @@ function logKeluar() {
 }
 
 function muatDataStok() {
-  document.getElementById("app-content").innerHTML = '<div class="text-center my-5"><div class="spinner-border text-primary"></div></div>';
-  fetch(GAS_API_URL + "?action=getInventory")
+  document.getElementById("app-content").innerHTML = '<div class="text-center my-5"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">Memuatkan data stok...</p></div>';
+  fetch(`${API_URL}?action=getInventory`)
     .then(res => res.json())
     .then(res => {
-      globalInventoryData = res.data;
-      tapisData();
+      if (res.success) {
+        globalInventoryData = res.data || [];
+        tapisData();
+      } else {
+        document.getElementById("app-content").innerHTML = '<p class="text-center text-danger my-4">Gagal memuatkan data stok.</p>';
+      }
+    })
+    .catch(err => {
+      document.getElementById("app-content").innerHTML = '<p class="text-center text-danger my-4">Ralat sambungan rangkaian.</p>';
     });
 }
 
@@ -108,7 +110,7 @@ function tapisData() {
   var dataHasil = globalInventoryData.filter(function(row) {
     var id = String(row[0]).toLowerCase();
     var nama = String(row[1]).toLowerCase();
-    var stok = parseInt(row[3]);
+    var stok = parseInt(row[3]) || 0;
     var murniTeks = id.includes(carian) || nama.includes(carian);
     var murniStok = true;
     if (currentFilter === 'rendah') murniStok = stok < 20;
@@ -120,22 +122,22 @@ function tapisData() {
 
 function renderJadual(data) {
   var content = document.getElementById("app-content");
-  if(data.length === 0) {
+  if(!data || data.length === 0) {
     content.innerHTML = "<p class='text-center text-muted my-4'>Tiada item dijumpai.</p>";
     return;
   }
   var html = '<div class="table-responsive"><table class="table table-hover align-middle">';
   html += '<thead class="table-light"><tr><th>Nama Item</th><th class="text-center">Stok</th></tr></thead><tbody>';
   data.forEach(function(row) {
-    var badgeClass = row[3] < 20 ? 'bg-danger' : 'bg-success';
-    html += '<tr><td><span class="fw-bold">' + row[1] + '</span><br><small class="text-muted">' + row[0] + '</small></td>';
-    html += '<td class="text-center"><span class="badge rounded-pill ' + badgeClass + ' fs-6">' + row[3] + '</span></td></tr>';
+    var stok = parseInt(row[3]) || 0;
+    var badgeClass = stok < 20 ? 'bg-danger' : 'bg-success';
+    html += '<tr><td><span class="fw-bold">' + row[1] + '</span><br><small class="text-muted">ID: ' + row[0] + '</small></td>';
+    html += '<td class="text-center"><span class="badge rounded-pill ' + badgeClass + ' fs-6">' + stok + '</span></td></tr>';
   });
   html += '</tbody></table></div>';
   content.innerHTML = html;
 }
 
-// --- KAWALAN PENGIMBAS ---
 function bukaPengimbas(mode) {
   scannerMode = mode;
   var modalElement = new bootstrap.Modal(document.getElementById('scannerModal'));
@@ -162,7 +164,7 @@ function prosesGambarQR(e) {
 
   html5QrCode.scanFile(e.target.files[0], true)
     .then(decodedText => { Swal.close(); onScanSuccess(decodedText); })
-    .catch(() => Swal.fire('Ralat Imbasan', 'Kod tidak dapat dibaca.', 'error'));
+    .catch(() => Swal.fire('Ralat Imbasan', 'Kod tidak dapat dibaca dari imej.', 'error'));
   e.target.value = '';
 }
 
@@ -190,17 +192,23 @@ function tutupPengimbas() {
   }
 }
 
-// --- SEJARAH & BORANG ---
 function bukaSejarah() {
   document.getElementById("view-dashboard").style.display = "none";
   document.getElementById("view-history").style.display = "block";
   document.getElementById("history-content").innerHTML = '<div class="text-center my-5"><div class="spinner-border text-primary"></div></div>';
   
-  fetch(GAS_API_URL + "?action=getTransactions")
+  fetch(`${API_URL}?action=getTransactions`)
     .then(res => res.json())
     .then(res => {
-      globalTransactionsData = res.data || [];
-      paparSejarah(globalTransactionsData);
+      if(res.success) {
+        globalTransactionsData = res.data || [];
+        paparSejarah(globalTransactionsData);
+      } else {
+        document.getElementById("history-content").innerHTML = "<p class='text-center text-danger my-4'>Gagal memuatkan sejarah.</p>";
+      }
+    })
+    .catch(err => {
+      document.getElementById("history-content").innerHTML = "<p class='text-center text-danger my-4'>Ralat sambungan.</p>";
     });
 }
 
@@ -212,7 +220,7 @@ function tutupSejarah() {
 function paparSejarah(data) {
   var content = document.getElementById("history-content");
   if(!data || data.length === 0) {
-    content.innerHTML = "<p class='text-center text-muted my-4'>Tiada rekod.</p>";
+    content.innerHTML = "<p class='text-center text-muted my-4'>Tiada rekod transaksi.</p>";
     return;
   }
   var html = '<div class="list-group list-group-flush">';
@@ -227,7 +235,7 @@ function paparSejarah(data) {
 }
 
 function muatTurunCSV() {
-  if (!globalTransactionsData.length) return Swal.fire('Tiada Data', '', 'warning');
+  if (!globalTransactionsData.length) return Swal.fire('Tiada Data', 'Tiada rekod untuk dimuat turun', 'warning');
   var csvContent = "\uFEFFID Transaksi,Tarikh,ID Item,Nama Item,Jenis,Kuantiti,Oleh\n";
   globalTransactionsData.forEach(trx => {
     csvContent += `"${trx.transId}","${trx.tarikh}","${trx.itemId}","${trx.namaItem}","${trx.jenis}",${trx.kuantiti},"${trx.direkodOleh}"\n`;
@@ -243,9 +251,9 @@ function bukaBorang() {
   document.getElementById("view-dashboard").style.display = "none";
   document.getElementById("view-form").style.display = "block";
   var selectObj = document.getElementById("item_id");
-  selectObj.innerHTML = '<option value="">-- Pilih --</option>';
+  selectObj.innerHTML = '<option value="">-- Pilih Item --</option>';
   globalInventoryData.forEach(row => {
-    selectObj.innerHTML += '<option value="' + row[0] + '">' + row[1] + ' (Stok: ' + row[3] + ')</option>';
+    selectObj.innerHTML += '<option value="' + row[0] + '">' + row[1] + ' (Stok Semasa: ' + row[3] + ')</option>';
   });
 }
 
@@ -268,8 +276,8 @@ function hantarData(e) {
     direkod_oleh: localStorage.getItem("inventoryUserName")
   };
 
-  fetch(GAS_API_URL, {
-    method: "POST",
+  fetch(API_URL, {
+    method: 'POST',
     body: JSON.stringify(payload)
   })
   .then(res => res.json())
@@ -283,5 +291,10 @@ function hantarData(e) {
     } else {
       Swal.fire('Ralat', res.message, 'error');
     }
+  })
+  .catch(err => {
+    btnSubmit.disabled = false;
+    btnSubmit.innerText = "Simpan Transaksi";
+    Swal.fire('Ralat', 'Gagal membuat sambungan ke pelayan: ' + err.toString(), 'error');
   });
 }
