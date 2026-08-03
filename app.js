@@ -278,6 +278,9 @@ function hantarData(e) {
 
   fetch(API_URL, {
     method: 'POST',
+    headers: {
+      'Content-Type': 'text/plain;charset=utf-8',
+    },
     body: JSON.stringify(payload)
   })
   .then(res => res.json())
@@ -295,6 +298,6 @@ function hantarData(e) {
   .catch(err => {
     btnSubmit.disabled = false;
     btnSubmit.innerText = "Simpan Transaksi";
-    Swal.fire('Ralat', 'Gagal membuat sambungan ke pelayan: ' + err.toString(), 'error');
+    Swal.fire('Ralat', 'Gagal membuat sambungan: ' + err.toString(), 'error');
   });
 }
