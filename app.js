@@ -276,12 +276,16 @@ function hantarData(e) {
     direkod_oleh: localStorage.getItem("inventoryUserName")
   };
 
+  // Menggunakan URLSearchParams untuk mengelakkan CORS Preflight Block
+  var formData = new URLSearchParams();
+  formData.append("item_id", payload.item_id);
+  formData.append("jenis_transaksi", payload.jenis_transaksi);
+  formData.append("kuantiti", payload.kuantiti);
+  formData.append("direkod_oleh", payload.direkod_oleh);
+
   fetch(API_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'text/plain;charset=utf-8',
-    },
-    body: JSON.stringify(payload)
+    body: formData
   })
   .then(res => res.json())
   .then(res => {
