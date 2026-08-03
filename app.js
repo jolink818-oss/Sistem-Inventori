@@ -8,15 +8,6 @@ var savedUserName = localStorage.getItem("inventoryUserName");
 var html5QrCode = null;
 var scannerMode = 'carian';
 
-// REGISTRATION SERVICE WORKER
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js')
-      .then(reg => console.log('Service Worker terdaftar:', reg.scope))
-      .catch(err => console.log('Ralat Service Worker:', err));
-  });
-}
-
 document.addEventListener("DOMContentLoaded", function() {
   if (savedUserName) {
     document.getElementById("user-greeting").innerText = "Pengguna: " + savedUserName;
@@ -29,8 +20,9 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 });
 
+// MEMUATKAN SENARAI PENGGUNA
 function muatPengguna() {
-  fetch(`${API_URL}?action=getUsers`)
+  fetch(`${API_URL}?action=getUsers`, { method: "GET", redirect: "follow" })
     .then(res => res.json())
     .then(res => {
       if(res.success && res.data) {
@@ -81,9 +73,11 @@ function logKeluar() {
   });
 }
 
+// MEMUATKAN DATA STOK INVENTORI
 function muatDataStok() {
   document.getElementById("app-content").innerHTML = '<div class="text-center my-5"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">Memuatkan data stok...</p></div>';
-  fetch(`${API_URL}?action=getInventory`)
+  
+  fetch(`${API_URL}?action=getInventory`, { method: "GET", redirect: "follow" })
     .then(res => res.json())
     .then(res => {
       if (res.success) {
@@ -94,7 +88,7 @@ function muatDataStok() {
       }
     })
     .catch(err => {
-      document.getElementById("app-content").innerHTML = '<p class="text-center text-danger my-4">Ralat sambungan rangkaian.</p>';
+      document.getElementById("app-content").innerHTML = '<p class="text-center text-danger my-4">Ralat sambungan: ' + err.toString() + '</p>';
     });
 }
 
@@ -138,6 +132,7 @@ function renderJadual(data) {
   content.innerHTML = html;
 }
 
+// IMBASAN KOD BAR
 function bukaPengimbas(mode) {
   scannerMode = mode;
   var modalElement = new bootstrap.Modal(document.getElementById('scannerModal'));
@@ -192,12 +187,13 @@ function tutupPengimbas() {
   }
 }
 
+// SEJARAH TRANSAKSI
 function bukaSejarah() {
   document.getElementById("view-dashboard").style.display = "none";
   document.getElementById("view-history").style.display = "block";
   document.getElementById("history-content").innerHTML = '<div class="text-center my-5"><div class="spinner-border text-primary"></div></div>';
   
-  fetch(`${API_URL}?action=getTransactions`)
+  fetch(`${API_URL}?action=getTransactions`, { method: "GET", redirect: "follow" })
     .then(res => res.json())
     .then(res => {
       if(res.success) {
@@ -247,6 +243,7 @@ function muatTurunCSV() {
   a.click();
 }
 
+// BORANG KEMASKINI STOK
 function bukaBorang() {
   document.getElementById("view-dashboard").style.display = "none";
   document.getElementById("view-form").style.display = "block";
@@ -263,6 +260,7 @@ function tutupBorang() {
   document.getElementById("transForm").reset();
 }
 
+// HANTAR DATA BORANG (MENGELAKKAN CORS PREFLIGHT)
 function hantarData(e) {
   e.preventDefault();
   var btnSubmit = document.getElementById("btn-submit");
@@ -276,28 +274,20 @@ function hantarData(e) {
     direkod_oleh: localStorage.getItem("inventoryUserName")
   };
 
-  // Menggunakan URLSearchParams untuk mengelakkan CORS Preflight Block
-  var formData = new URLSearchParams();
-  formData.append("item_id", payload.item_id);
-  formData.append("jenis_transaksi", payload.jenis_transaksi);
-  formData.append("kuantiti", payload.kuantiti);
-  formData.append("direkod_oleh", payload.direkod_oleh);
-
   fetch(API_URL, {
     method: 'POST',
-    body: formData
+    mode: 'no-cors', // Elak sekatan CORS Options Preflight dari Apps Script
+    headers: {
+      'Content-Type': 'text/plain;charset=utf-8'
+    },
+    body: JSON.stringify(payload)
   })
-  .then(res => res.json())
-  .then(res => {
+  .then(() => {
     btnSubmit.disabled = false;
     btnSubmit.innerText = "Simpan Transaksi";
-    if(res.success) {
-      Swal.fire('Berjaya!', res.message, 'success');
-      tutupBorang();
-      muatDataStok();
-    } else {
-      Swal.fire('Ralat', res.message, 'error');
-    }
+    Swal.fire('Berjaya!', 'Rekod transaksi telah dihantar.', 'success');
+    tutupBorang();
+    setTimeout(muatDataStok, 1500);
   })
   .catch(err => {
     btnSubmit.disabled = false;
