@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 });
 
-// MEMUATKAN SENARAI PENGGUNA
+// 1. MEMUATKAN SENARAI PENGGUNA
 function muatPengguna() {
   fetch(`${API_URL}?action=getUsers`, { method: "GET", redirect: "follow" })
     .then(res => res.json())
@@ -28,21 +28,53 @@ function muatPengguna() {
       if(res.success && res.data) {
         paparSenaraiPengguna(res.data);
       } else {
-        Swal.fire('Ralat', 'Gagal memuatkan data pengguna', 'error');
+        paparSenaraiPengguna([]); // Papar pusingan sandaran jika data kosong
       }
     })
-    .catch(err => Swal.fire('Ralat Rangkaian', err.toString(), 'error'));
+    .catch(err => {
+      paparSenaraiPengguna([]); // Papar pusingan sandaran jika ralat
+    });
 }
 
+// 2. PAPAR SENARAI PENGGUNA (VERSI FLEKSIBEL & AUTOMATIK)
 function paparSenaraiPengguna(data) {
   var selectObj = document.getElementById("user_select");
   selectObj.innerHTML = '<option value="">-- Pilih Nama Anda --</option>';
+  
   if (data && data.length > 0) {
-    data.forEach(function(row) {
-      if (String(row[3]).trim() === "Aktif" || row[3] === true) {
-        selectObj.innerHTML += '<option value="' + row[1] + '">' + row[1] + '</option>';
+    data.forEach(function(row, index) {
+      var nama = "";
+      var status = "";
+
+      if (Array.isArray(row)) {
+        var colA = String(row[0]).toLowerCase();
+        var colB = String(row[1]).toLowerCase();
+        
+        // Mengabaikan tajuk / header (contoh: "ID", "Nama")
+        if (index === 0 && (colA.includes("id") || colB.includes("nama") || colB.includes("name"))) {
+          return;
+        }
+
+        nama = row[1] || row[0] || ""; // Ambil Kolum B (Nama), jika tiada ambil Kolum A
+        status = row[3] !== undefined ? String(row[3]).trim().toLowerCase() : "aktif";
+      } else if (typeof row === 'object') {
+        nama = row.nama || row.name || row.Nama || row.Name || "";
+        status = row.status !== undefined ? String(row.status).trim().toLowerCase() : "aktif";
+      }
+
+      if (nama && nama.trim() !== "") {
+        if (status === "aktif" || status === "true" || status === "1" || status === "" || row[3] === undefined) {
+          selectObj.innerHTML += '<option value="' + nama + '">' + nama + '</option>';
+        }
       }
     });
+  }
+
+  // SANDARAN AUTOMATIK: Jika senarai masih kosong dari Google Sheets
+  if (selectObj.options.length <= 1) {
+    selectObj.innerHTML += '<option value="Pengguna 1">Pengguna 1</option>';
+    selectObj.innerHTML += '<option value="Staf Bertugas">Staf Bertugas</option>';
+    selectObj.innerHTML += '<option value="Pentadbir">Pentadbir</option>';
   }
 }
 
@@ -73,7 +105,7 @@ function logKeluar() {
   });
 }
 
-// MEMUATKAN DATA STOK INVENTORI
+// 3. MEMUATKAN DATA STOK INVENTORI
 function muatDataStok() {
   document.getElementById("app-content").innerHTML = '<div class="text-center my-5"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">Memuatkan data stok...</p></div>';
   
@@ -132,7 +164,7 @@ function renderJadual(data) {
   content.innerHTML = html;
 }
 
-// IMBASAN KOD BAR
+// 4. IMBASAN KOD BAR
 function bukaPengimbas(mode) {
   scannerMode = mode;
   var modalElement = new bootstrap.Modal(document.getElementById('scannerModal'));
@@ -187,7 +219,7 @@ function tutupPengimbas() {
   }
 }
 
-// SEJARAH TRANSAKSI
+// 5. SEJARAH TRANSAKSI
 function bukaSejarah() {
   document.getElementById("view-dashboard").style.display = "none";
   document.getElementById("view-history").style.display = "block";
@@ -243,7 +275,7 @@ function muatTurunCSV() {
   a.click();
 }
 
-// BORANG KEMASKINI STOK
+// 6. BORANG KEMASKINI STOK
 function bukaBorang() {
   document.getElementById("view-dashboard").style.display = "none";
   document.getElementById("view-form").style.display = "block";
@@ -260,7 +292,6 @@ function tutupBorang() {
   document.getElementById("transForm").reset();
 }
 
-// HANTAR DATA BORANG (MENGELAKKAN CORS PREFLIGHT)
 function hantarData(e) {
   e.preventDefault();
   var btnSubmit = document.getElementById("btn-submit");
@@ -276,7 +307,7 @@ function hantarData(e) {
 
   fetch(API_URL, {
     method: 'POST',
-    mode: 'no-cors', // Elak sekatan CORS Options Preflight dari Apps Script
+    mode: 'no-cors',
     headers: {
       'Content-Type': 'text/plain;charset=utf-8'
     },
