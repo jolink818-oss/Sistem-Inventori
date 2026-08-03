@@ -1,5 +1,5 @@
 // MASUKKAN URL WEB APP GOOGLE APPS SCRIPT ANDA DI SINI
-const GAS_API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AUkAhnRYDWTe1bplAzKFNJBbM4mhsZOqdloLDRHs76Z-K6pHzt8mifEVix05FFEs6XCWs9vb9J0QzlWkeWM5_1nq2UwatRJyAlzqRK6xkEJ0JXgPo57BB0Fl5Qw9pkiULTwoaGYm91B6f3fXBhpDOYgQ9n_3uFUrYV1XKzHz0-2NoUFjdrsYKQYIyFsaOAihxujMD-ECIx2fEoJmzGpJTrVq9WPyPFa8WOyZKQQKy3lMyb5z_45_EzkTap0qoB5echAJMMc9Nl0SEXqpNqjRmrwXYUGvWm-zCQ&lib=M00i2vJo_ycDj4gUN6fWXObE956fM3Js4"; 
+const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxoiW6swt-4rssmCwh7mc_TCZ0gaBP-z8TXNpayMavuU2ywPcbXz-IGPZIzN5MynYrN/exec"; 
 
 var globalInventoryData = [];
 var globalTransactionsData = [];
