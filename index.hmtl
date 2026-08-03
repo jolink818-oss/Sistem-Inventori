@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- TETAPAN PWA & META TAGS -->
+    <meta name="theme-color" content="#0d6efd">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Inventori">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3081/3081559.png">
+    <link id="manifest-link" rel="manifest">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Pustaka Imbasan Kod Bar & QR -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <?!= include('CSS_Main'); ?>
+  </head>
+  <body>
+    <div class="container mt-4">
+      <div class="header-box text-center mb-4">
+        <h3 class="mb-0">📦 Sistem Inventori</h3>
+        <small id="user-greeting">Memuatkan sesi...</small>
+        
+        <!-- BUTANG PASANG PWA (MUNCUL JIKA DISOKONG TELEFON) -->
+        <div class="mt-2">
+          <button id="btn-pwa-install" class="btn btn-sm btn-light shadow-sm text-primary fw-bold" style="display:none;" onclick="pasangPWA()">
+            📲 Pasang Aplikasi Ke Telefon
+          </button>
+        </div>
+      </div>
+      
+      <!-- Input Tersembunyi Kamera Asal Telefon -->
+      <input type="file" id="qr-file-input" accept="image/*" capture="environment" style="display:none;" onchange="prosesGambarQR(event)">
+
+      <!-- PAPARAN PROFIL -->
+      <div id="view-profile" style="display: none;">
+        <div class="card shadow-sm border-0">
+          <div class="card-body text-center">
+            <h5 class="mb-3">Sila Daftar Profil Peranti</h5>
+            <p class="text-muted small">Anda hanya perlu melakukan ini sekali sahaja.</p>
+            <select class="form-select mb-3" id="user_select">
+              <option value="">-- Memuatkan Senarai Staf --</option>
+            </select>
+            <button class="btn btn-primary w-100 py-2" onclick="simpanProfil()">Simpan & Masuk</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAPARAN DASHBOARD -->
+      <div id="view-dashboard" style="display: none;">
+        <div class="mb-3">
+          <div class="input-group mb-2">
+            <input type="text" class="form-control" id="search-input" placeholder="🔍 Cari nama item atau ID..." onkeyup="tapisData()">
+            <button class="btn btn-outline-primary" type="button" onclick="bukaPengimbas('carian')">📷 Imbas</button>
+          </div>
+          
+          <div class="btn-group w-100" role="group">
+            <button type="button" class="btn btn-sm btn-outline-primary active" id="filter-semua" onclick="setFilter('semua')">Semua</button>
+            <button type="button" class="btn btn-sm btn-outline-danger" id="filter-rendah" onclick="setFilter('rendah')">⚠️ Stok Rendah</button>
+            <button type="button" class="btn btn-sm btn-outline-success" id="filter-mencukupi" onclick="setFilter('mencukupi')">✅ Cukup</button>
+          </div>
+        </div>
+
+        <div id="app-content"></div>
+        
+        <div class="d-flex gap-2 mt-4">
+          <button class="btn btn-primary flex-fill py-2" onclick="bukaBorang()">+ Kemaskini Stok</button>
+          <button class="btn btn-outline-primary flex-fill py-2" onclick="bukaSejarah()">📜 Sejarah Log</button>
+        </div>
+        <button class="btn btn-outline-danger w-100 mt-2 btn-sm" onclick="logKeluar()">Tukar Profil</button>
+      </div>
+
+      <!-- PAPARAN SEJARAH TRANSAKSI -->
+      <div id="view-history" style="display: none;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="mb-0">📜 Sejarah Transaksi</h5>
+          <div>
+            <button type="button" class="btn btn-sm btn-success me-1" onclick="muatTurunCSV()">📥 Muat Turun CSV</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="tutupSejarah()">✕ Kembali</button>
+          </div>
+        </div>
+        <div id="history-content"></div>
+      </div>
+
+      <!-- PAPARAN BORANG TRANSAKSI -->
+      <div id="view-form" style="display: none;">
+        <div class="card shadow-sm border-0">
+          <div class="card-body">
+            <h5 class="card-title text-center mb-4">Borang Transaksi</h5>
+            <form id="transForm" onsubmit="hantarData(event)">
+              <div class="mb-3">
+                <label class="form-label fw-bold">Pilih Item</label>
+                <div class="input-group">
+                  <select class="form-select" id="item_id" required></select>
+                  <button class="btn btn-outline-primary" type="button" onclick="bukaPengimbas('borang')">📷 Imbas</button>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-bold">Jenis Transaksi</label>
+                <div class="d-flex gap-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="jenis_transaksi" value="Masuk" id="masuk" required>
+                    <label class="form-check-label text-success fw-bold" for="masuk">Masuk</label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="jenis_transaksi" value="Keluar" id="keluar">
+                    <label class="form-check-label text-danger fw-bold" for="keluar">Keluar</label>
+                  </div>
+                </div>
+              </div>
+              <div class="mb-4">
+                <label class="form-label fw-bold">Kuantiti</label>
+                <input type="number" class="form-control" id="kuantiti" min="1" required>
+              </div>
+              <button type="submit" class="btn btn-success w-100 py-2 mb-2" id="btn-submit">Simpan Transaksi</button>
+              <button type="button" class="btn btn-outline-secondary w-100 py-2" onclick="tutupBorang()">Batal</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL KAMERA PENGIMBAS -->
+      <div class="modal fade" id="scannerModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">📷 Imbas Kod Bar / QR</h5>
+              <button type="button" class="btn-close" onclick="tutupPengimbas()"></button>
+            </div>
+            <div class="modal-body text-center">
+              <div id="qr-reader" style="width: 100%;"></div>
+              <hr>
+              <p class="small text-muted mb-2">Jika kamera live disekat oleh browser Anda:</p>
+              <button type="button" class="btn btn-outline-primary btn-sm w-100" onclick="ambilGambarKamera()">📸 Tangkap Gambar Kod (Kamera Asal)</button>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary w-100" onclick="tutupPengimbas()">Tutup</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <?!= include('JS_Main'); ?>
+  </body>
+</html>
