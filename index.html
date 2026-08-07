@@ -1,133 +1,272 @@
 <!DOCTYPE html>
 <html lang="ms">
 <head>
-  <meta charset="UTF-8">
+  <base target="_top">
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistem Inventori</title>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0d6efd">
+  <title>Sistem Sejarah Lawatan Sekolah</title>
   
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-</head>
-<body class="bg-light">
-  <div class="container mt-4 mb-5">
+  <!-- PWA & Theme -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#3498db">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+    .container { max-width: 800px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+    header { text-align: center; margin-bottom: 25px; }
+    header h1 { margin: 0; color: #2c3e50; font-size: 24px; }
+    .subtitle { color: #7f8c8d; font-size: 14px; margin-top: 5px; }
     
-    <!-- TAJUK UTAMA -->
-    <div class="text-center mb-4 p-3 bg-white rounded shadow-sm">
-      <h3 class="mb-0 text-primary">📦 Sistem Inventori</h3>
-      <small id="user-greeting" class="text-muted">Memuatkan sesi...</small>
+    .dashboard-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; margin-bottom: 20px; }
+    .card { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; border-left: 4px solid #3498db; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
+    .card h3 { margin: 0; font-size: 13px; color: #7f8c8d; }
+    .card p { margin: 8px 0 0; font-size: 18px; font-weight: bold; color: #2c3e50; }
+    
+    .chart-container { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; height: 260px; }
+    
+    .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+    .tab-btn { flex: 1; padding: 10px; background: #ecf0f1; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+    .tab-btn.active { background: #3498db; color: white; }
+    
+    .search-box, .form-container { display: flex; gap: 10px; margin-bottom: 20px; }
+    
+    /* Wrapper untuk kotak carian dan butang X */
+    .input-wrapper { position: relative; flex: 1; display: flex; align-items: center; }
+    .input-wrapper input { width: 100%; padding: 12px 35px 12px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; box-sizing: border-box; }
+    
+    /* Gaya butang X */
+    .clear-btn { position: absolute; right: 10px; background: none; border: none; font-size: 18px; color: #95a5a6; cursor: pointer; display: none; padding: 0; line-height: 1; }
+    .clear-btn:hover { color: #e74c3c; }
+
+    .search-box button, .btn-submit { padding: 12px 20px; background: #3498db; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    .search-box button:hover, .btn-submit:hover { background: #2980b9; }
+    
+    .form-container { flex-direction: column; background: #fdfdfd; padding: 20px; border: 1px solid #eee; border-radius: 8px; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
+    .form-group input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+    
+    .school-result-card { background: #fafbfc; border: 1px solid #e1e4e8; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+    .analysis-box { background: #e8f4fd; padding: 12px; border-radius: 6px; margin: 10px 0; font-size: 14px; }
+    .visit-item { background: white; padding: 10px; border-left: 3px solid #2ecc71; margin-top: 8px; border-radius: 4px; font-size: 13px; }
+    .loading { text-align: center; color: #7f8c8d; font-style: italic; margin: 15px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Sistem Sejarah Lawatan Sekolah</h1>
+      <p class="subtitle">Aplikasi PWA & Pangkalan Data Google Sheet</p>
+    </header>
+
+    <!-- Dashboard -->
+    <div class="dashboard-cards">
+      <div class="card"><h3>Sekolah Unik</h3><p id="dashUniqueSchools">-</p></div>
+      <div class="card"><h3>Jumlah Lawatan</h3><p id="dashTotalVisits">-</p></div>
+      <div class="card"><h3>Jumlah Jualan</h3><p id="dashTotalSales">-</p></div>
+      <div class="card"><h3>Purata Jualan</h3><p id="dashAvgSales">-</p></div>
     </div>
 
-    <!-- KAMERA KOD BAR TERSEMBUNYI -->
-    <input type="file" id="qr-file-input" accept="image/*" capture="environment" style="display:none;" onchange="prosesGambarQR(event)">
-
-    <!-- 1. PAPARAN PROFIL / PENGGUNA -->
-    <div id="view-profile" style="display: none;">
-      <div class="card shadow-sm border-0">
-        <div class="card-body text-center">
-          <h5 class="mb-3">Sila Pilih Profil Bertugas</h5>
-          <select class="form-select mb-3" id="user_select">
-            <option value="">-- Memuatkan Pengguna --</option>
-          </select>
-          <button class="btn btn-primary w-100 py-2" onclick="simpanProfil()">Simpan & Masuk</button>
-        </div>
-      </div>
+    <!-- Carta -->
+    <div class="chart-container">
+      <canvas id="salesChart"></canvas>
     </div>
 
-    <!-- 2. PAPARAN DASHBOARD / SENARAI ITEM -->
-    <div id="view-dashboard" style="display: none;">
-      <div class="mb-3">
-        <div class="input-group mb-2">
-          <input type="text" class="form-control" id="search-input" placeholder="🔍 Cari item atau Kod Bar..." onkeyup="tapisData()">
-          <button class="btn btn-outline-primary" onclick="bukaPengimbas('carian')">📷 Imbas</button>
-        </div>
-        <div class="btn-group w-100">
-          <button class="btn btn-sm btn-outline-primary active" id="filter-semua" onclick="setFilter('semua')">Semua</button>
-          <button class="btn btn-sm btn-outline-danger" id="filter-rendah" onclick="setFilter('rendah')">⚠️ Stok Rendah</button>
-          <button class="btn btn-sm btn-outline-success" id="filter-mencukupi" onclick="setFilter('mencukupi')">✅ Cukup</button>
-        </div>
-      </div>
-
-      <div id="app-content"></div>
-
-      <div class="d-flex gap-2 mt-4">
-        <button class="btn btn-primary flex-fill py-2" onclick="bukaBorang()">+ Kemaskini Stok</button>
-        <button class="btn btn-outline-primary flex-fill py-2" onclick="bukaSejarah()">📜 Sejarah Log</button>
-      </div>
-      <button class="btn btn-outline-danger w-100 mt-2 btn-sm" onclick="logKeluar()">Tukar Profil</button>
+    <!-- Tab Navigasi -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('searchTab', event)">Cari Sekolah</button>
+      <button class="tab-btn" onclick="switchTab('addTab', event)">Tambah Rekod Baru</button>
     </div>
 
-    <!-- 3. PAPARAN SEJARAH TRANSAKSI -->
-    <div id="view-history" style="display: none;">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">📜 Sejarah Transaksi</h5>
-        <div>
-          <button class="btn btn-sm btn-success me-1" onclick="muatTurunCSV()">📥 CSV</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="tutupSejarah()">✕ Kembali</button>
+    <!-- Carian -->
+    <div id="searchTab" class="tab-content">
+      <div class="search-box">
+        <div class="input-wrapper">
+          <input type="text" id="searchInput" placeholder="Taip kata kunci (Cth: SK, KAFA, Paya Salak)..." oninput="toggleClearButton()" onkeypress="if(event.key === 'Enter') performSearch()">
+          <button type="button" id="clearBtn" class="clear-btn" onclick="clearSearch()">&times;</button>
         </div>
+        <button onclick="performSearch()">Cari</button>
       </div>
-      <div id="history-content"></div>
+      <div id="loading" class="loading" style="display:none;">Sedang memproses data...</div>
+      <div id="searchResult"></div>
     </div>
 
-    <!-- 4. PAPARAN BORANG TRANSAKSI -->
-    <div id="view-form" style="display: none;">
-      <div class="card shadow-sm border-0">
-        <div class="card-body">
-          <h5 class="card-title text-center mb-4">Borang Transaksi</h5>
-          <form id="transForm" onsubmit="hantarData(event)">
-            <div class="mb-3">
-              <label class="form-label fw-bold">Pilih Item</label>
-              <div class="input-group">
-                <select class="form-select" id="item_id" required></select>
-                <button class="btn btn-outline-primary" type="button" onclick="bukaPengimbas('borang')">📷 Imbas</button>
-              </div>
-            </div>
-            <div class="mb-3">
-              <label class="form-label fw-bold">Jenis Transaksi</label>
-              <div class="d-flex gap-3">
-                <div class="form-check">
-                  <input class="form-check-input" type="radio" name="jenis_transaksi" value="Masuk" id="masuk" required>
-                  <label class="form-check-label text-success fw-bold" for="masuk">Masuk (+)</label>
-                </div>
-                <div class="form-check">
-                  <input class="form-check-input" type="radio" name="jenis_transaksi" value="Keluar" id="keluar">
-                  <label class="form-check-label text-danger fw-bold" for="keluar">Keluar (-)</label>
-                </div>
-              </div>
-            </div>
-            <div class="mb-4">
-              <label class="form-label fw-bold">Kuantiti</label>
-              <input type="number" class="form-control" id="kuantiti" min="1" required>
-            </div>
-            <button type="submit" class="btn btn-success w-100 py-2 mb-2" id="btn-submit">Simpan Transaksi</button>
-            <button type="button" class="btn btn-outline-secondary w-100 py-2" onclick="tutupBorang()">Batal</button>
-          </form>
-        </div>
+    <!-- Tambah Rekod -->
+    <div id="addTab" class="tab-content" style="display:none;">
+      <div class="form-container">
+        <h2>Borang Rekod Lawatan</h2>
+        <form id="recordForm" onsubmit="submitRecord(event)">
+          <div class="form-group"><label>Tarikh:</label><input type="date" id="tarikh" required></div>
+          <div class="form-group"><label>Nama Sekolah:</label><input type="text" id="namaSekolah" placeholder="Nama penuh sekolah" required></div>
+          <div class="form-group"><label>Jumlah Pelajar:</label><input type="number" id="jumlahPelajar" placeholder="Cth: 200" required></div>
+          <div class="form-group"><label>Jumlah Jualan (RM):</label><input type="number" step="0.01" id="jumlahJualan" placeholder="Cth: 2500.00" required></div>
+          <button type="submit" class="btn-submit">Simpan Rekod</button>
+        </form>
+        <div id="formMessage" style="margin-top: 10px; font-weight: bold;"></div>
       </div>
     </div>
-
-    <!-- MODAL KAMERA IMBASAN -->
-    <div class="modal fade" id="scannerModal" data-bs-backdrop="static" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">📷 Imbas Kod Bar / QR</h5>
-            <button type="button" class="btn-close" onclick="tutupPengimbas()"></button>
-          </div>
-          <div class="modal-body text-center">
-            <div id="qr-reader" style="width: 100%;"></div>
-            <hr>
-            <button type="button" class="btn btn-outline-primary btn-sm w-100" onclick="ambilGambarKamera()">📸 Tangkap Gambar Kod</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="app.js"></script>
+  <script>
+    const GAS_URL = "MASUKKAN_URL_WEB_APP_GOOGLE_APPS_SCRIPT_ANDA_DI_SINI";
+
+    window.onload = function() {
+      loadDashboard();
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW error:', err));
+      }
+    };
+
+    function switchTab(tabId, evt) {
+      document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).style.display = 'block';
+      evt.currentTarget.classList.add('active');
+    }
+
+    // Fungsi Papar/Sembunyi Butang X
+    function toggleClearButton() {
+      let input = document.getElementById('searchInput');
+      let clearBtn = document.getElementById('clearBtn');
+      if (input.value.length > 0) {
+        clearBtn.style.display = 'block';
+      } else {
+        clearBtn.style.display = 'none';
+      }
+    }
+
+    // Fungsi Kosongkan Ruang Carian
+    function clearSearch() {
+      let input = document.getElementById('searchInput');
+      input.value = '';
+      document.getElementById('clearBtn').style.display = 'none';
+      document.getElementById('searchResult').innerHTML = '';
+      input.focus();
+    }
+
+    function loadDashboard() {
+      fetch(GAS_URL + '?action=getDashboard')
+        .then(res => res.json())
+        .then(stats => {
+          document.getElementById('dashUniqueSchools').innerText = stats.jumlahSekolahUnik;
+          document.getElementById('dashTotalVisits').innerText = stats.jumlahLawatan;
+          document.getElementById('dashTotalSales').innerText = 'RM ' + stats.jumlahKeseluruhanJualan;
+          document.getElementById('dashAvgSales').innerText = 'RM ' + stats.purataJualan;
+          renderSalesChart(stats.topSchools);
+        })
+        .catch(err => console.error('Ralat Dashboard:', err));
+    }
+
+    function renderSalesChart(topSchools) {
+      let ctx = document.getElementById('salesChart').getContext('2d');
+      let labels = topSchools ? topSchools.map(item => item.name) : [];
+      let dataVals = topSchools ? topSchools.map(item => item.sales) : [];
+      
+      if (window.mySalesChart) window.mySalesChart.destroy();
+      
+      window.mySalesChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Jumlah Jualan (RM)',
+            data: dataVals,
+            backgroundColor: 'rgba(52, 152, 219, 0.75)',
+            borderColor: 'rgba(41, 128, 185, 1)',
+            borderWidth: 1,
+            borderRadius: 5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false }, title: { display: true, text: 'Top 5 Sekolah Prestasi Jualan Tertinggi' } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    function performSearch() {
+      let query = document.getElementById('searchInput').value.trim();
+      if (!query) { alert('Sila masukkan kata kunci carian.'); return; }
+      
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('searchResult').innerHTML = '';
+
+      fetch(GAS_URL + '?action=search&query=' + encodeURIComponent(query))
+        .then(res => res.json())
+        .then(res => {
+          document.getElementById('loading').style.display = 'none';
+          let resultDiv = document.getElementById('searchResult');
+          
+          if (!res.found) {
+            resultDiv.innerHTML = `<p class="loading">${res.message}</p>`;
+            return;
+          }
+
+          let html = `<p>Ditemui <strong>${res.count}</strong> sekolah sepadan:</p>`;
+          res.schools.forEach(school => {
+            html += `<div class="school-result-card">`;
+            html += `<h2>${school.schoolName}</h2>`;
+            html += `<div class="analysis-box">`;
+            html += `<p><strong>Bilangan Lawatan:</strong> ${school.stats.totalVisits}</p>`;
+            html += `<p><strong>Jumlah Jualan:</strong> RM ${school.stats.totalSales}</p>`;
+            html += `<p><strong>Purata Jualan:</strong> RM ${school.stats.avgSales}</p>`;
+            html += `</div>`;
+            html += `<h3>Sejarah Lawatan</h3>`;
+            school.records.forEach((rec, index) => {
+              html += `<div class="visit-item">`;
+              html += `<p><strong>Lawatan ${index + 1} (${rec.tarikh}):</strong> Pelajar: ${rec.jumlahPelajar} | Jualan: RM ${rec.jumlahJualan.toFixed(2)}</p>`;
+              html += `</div>`;
+            });
+            html += `</div>`;
+          });
+          resultDiv.innerHTML = html;
+        })
+        .catch(err => {
+          document.getElementById('loading').style.display = 'none';
+          alert('Ralat rangkaian semasa mencari.');
+        });
+    }
+
+    function submitRecord(e) {
+      e.preventDefault();
+      let payload = {
+        tarikh: document.getElementById('tarikh').value,
+        namaSekolah: document.getElementById('namaSekolah').value,
+        jumlahPelajar: document.getElementById('jumlahPelajar').value,
+        jumlahJualan: document.getElementById('jumlahJualan').value
+      };
+
+      let msgDiv = document.getElementById('formMessage');
+      msgDiv.innerHTML = "Sedang menyimpan...";
+      msgDiv.style.color = "#3498db";
+
+      fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(res => {
+        if (res.success) {
+          msgDiv.innerHTML = res.message;
+          msgDiv.style.color = "green";
+          document.getElementById('recordForm').reset();
+          loadDashboard();
+        } else {
+          msgDiv.innerHTML = res.message;
+          msgDiv.style.color = "red";
+        }
+      })
+      .catch(err => {
+        msgDiv.innerHTML = "Ralat menyimpan rekod.";
+        msgDiv.style.color = "red";
+      });
+    }
+  </script>
 </body>
 </html>
