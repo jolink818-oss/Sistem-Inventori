@@ -34,14 +34,9 @@
     
     .search-box, .form-container { display: flex; gap: 10px; margin-bottom: 20px; }
     
-    /* Wrapper untuk kotak carian dan butang X */
-    .input-wrapper { position: relative; flex: 1; display: flex; align-items: center; }
-    .input-wrapper input { width: 100%; padding: 12px 35px 12px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; box-sizing: border-box; }
+    /* Kotak Carian menggunakan input type="search" untuk butang X natif */
+    .search-box input[type="search"] { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; box-sizing: border-box; }
     
-    /* Gaya butang X */
-    .clear-btn { position: absolute; right: 10px; background: none; border: none; font-size: 18px; color: #95a5a6; cursor: pointer; display: none; padding: 0; line-height: 1; }
-    .clear-btn:hover { color: #e74c3c; }
-
     .search-box button, .btn-submit { padding: 12px 20px; background: #3498db; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
     .search-box button:hover, .btn-submit:hover { background: #2980b9; }
     
@@ -85,8 +80,7 @@
     <!-- Carian -->
     <div id="searchTab" class="tab-content">
       <div class="search-box">
-        <input type="text" id="searchInput" placeholder="Taip kata kunci (Cth: SK, KAFA, Paya Salak)..." onkeypress="if(event.key === 'Enter') performSearch()">
-        <button type="button" onclick="clearSearch()" style="background: #e74c3c;" title="Kosongkan carian">Padam</button>
+        <input type="search" id="searchInput" placeholder="Taip kata kunci (Cth: SK, KAFA, Paya Salak)..." onsearch="clearSearch()" onkeypress="if(event.key === 'Enter') performSearch()">
         <button onclick="performSearch()">Cari</button>
       </div>
       <div id="loading" class="loading" style="display:none;">Sedang memproses data...</div>
@@ -126,23 +120,12 @@
       evt.currentTarget.classList.add('active');
     }
 
-    // Fungsi Papar/Sembunyi Butang X
-    function toggleClearButton() {
-      let input = document.getElementById('searchInput');
-      let clearBtn = document.getElementById('clearBtn');
-      if (input.value.length > 0) {
-        clearBtn.style.display = 'block';
-      } else {
-        clearBtn.style.display = 'none';
-      }
-    }
-
-    // Fungsi Kosongkan Ruang Carian
+    // Fungsi Kosongkan Ruang Carian (dipanggil apabila butang X pada input search ditekan)
     function clearSearch() {
       let input = document.getElementById('searchInput');
-      input.value = '';
-      document.getElementById('searchResult').innerHTML = '';
-      input.focus();
+      if (input.value === '') {
+        document.getElementById('searchResult').innerHTML = '';
+      }
     }
 
     function loadDashboard() {
