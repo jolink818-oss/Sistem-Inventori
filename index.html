@@ -85,10 +85,8 @@
     <!-- Carian -->
     <div id="searchTab" class="tab-content">
       <div class="search-box">
-        <div class="input-wrapper">
-          <input type="text" id="searchInput" placeholder="Taip kata kunci (Cth: SK, KAFA, Paya Salak)..." oninput="toggleClearButton()" onkeypress="if(event.key === 'Enter') performSearch()">
-          <button type="button" id="clearBtn" class="clear-btn" onclick="clearSearch()">&times;</button>
-        </div>
+        <input type="text" id="searchInput" placeholder="Taip kata kunci (Cth: SK, KAFA, Paya Salak)..." onkeypress="if(event.key === 'Enter') performSearch()">
+        <button type="button" onclick="clearSearch()" style="background: #e74c3c;" title="Kosongkan carian">Padam</button>
         <button onclick="performSearch()">Cari</button>
       </div>
       <div id="loading" class="loading" style="display:none;">Sedang memproses data...</div>
@@ -143,7 +141,6 @@
     function clearSearch() {
       let input = document.getElementById('searchInput');
       input.value = '';
-      document.getElementById('clearBtn').style.display = 'none';
       document.getElementById('searchResult').innerHTML = '';
       input.focus();
     }
